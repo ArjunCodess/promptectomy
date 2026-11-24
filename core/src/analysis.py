@@ -16,7 +16,15 @@ from .storage import canonical
 _DATA_MARKER = re.compile(r"(?im)(?:^|\s)(?:input|email|text|data|payload|value)\s*:\s*(?=\S)")
 _VARIABLES = re.compile(r'\{\{.+?\}\}|"(?:[^"\\]|\\.)*"|\b\d+(?:[.\-/]\d+)*\b')
 _EMAIL = re.compile(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", re.I)
+_PERSON_FIELD = re.compile(
+    r"\b((?:customer|client|user)(?:[ \t]+name)?[ \t]*[:=][ \t]*"
+    r"|(?:customer|client|user)[ \t]+name[ \t]+is[ \t]+)"
+    r"[^\W\d_]+(?:['’-][^\W\d_]+)*(?:[ \t]+[^\W\d_]+(?:['’-][^\W\d_]+)*){0,3}"
+    r"(?=[ \t]*(?:[,.;|\r\n]|$))",
+    re.I,
+)
 _CHAT_PREFIX = "chat | "
+_DIRECTIVE_END = re.compile(r"[:\r\n]")
 _DETAIL_REQUEST = re.compile(r"\b(please|provide|share|give|tell|need|what|could|can|may)\b", re.I)
 _REPLY_VALUE = re.compile(
     rf"(?P<email>{_EMAIL.pattern})"
@@ -64,8 +72,16 @@ class Task:
 def instruction_prefix(text: str) -> str:
     marker = _DATA_MARKER.search(text)
     instruction = text[: marker.start()] if marker else text.strip().partition("\n")[0]
-    instruction = _EMAIL.sub(" <email> ", instruction)
-    return " ".join(_VARIABLES.sub(" <value> ", instruction.casefold()).split())
+    return normalize_values(instruction)
+
+
+def normalize_values(text: str) -> str:
+    text = _EMAIL.sub(" <email> ", text)
+    return " ".join(_VARIABLES.sub(" <value> ", text.casefold()).split())
+
+
+def normalize_system(text: str) -> str:
+    return normalize_values(_PERSON_FIELD.sub(r"\1 <value> ", text))
 
 
 def chat_turns(prompt: str) -> list[tuple[str, str]]:
@@ -118,16 +134,16 @@ def template(prompt: str) -> str:
         return instruction_prefix(prompt)
 
     system = " ".join(
-        " ".join(text.casefold().split()) for role, text in turns if role in ("system", "developer")
+        normalize_system(text) for role, text in turns if role in ("system", "developer")
     )[:240]
     user = turns[last_user][1]
-    directive = instruction_prefix(user)
-    previous_role, previous = turns[last_user - 1] if last_user else ("", "")
-    if system and not _DIRECTIVE.match(directive.removeprefix("please ")):
-        value = _REPLY_VALUE.search(user) if previous_role == "assistant" else None
-        directive = (
-            f"reply with {value.lastgroup}" if value and _DETAIL_REQUEST.search(previous) else ""
-        )
+    directive = normalize_values(_DIRECTIVE_END.split(user.strip(), maxsplit=1)[0])
+    if not _DIRECTIVE.match(directive.removeprefix("please ")):
+        directive = "" if system else instruction_prefix(user)
+        if system and last_user and turns[last_user - 1][0] == "assistant":
+            value = _REPLY_VALUE.search(user)
+            if value and _DETAIL_REQUEST.search(turns[last_user - 1][1]):
+                directive = f"reply with {value.lastgroup}"
     return f"{_CHAT_PREFIX}{system} | {directive}"
 
 
@@ -154,20 +170,32 @@ def group_calls(calls: list[Call], known: dict[str, str]) -> dict[str, list[Call
     if set(known.values()) & groups.keys():
         raise ValueError("A step label collides with a persisted task ID. Rename the step.")
     taken = set(known.values()) | groups.keys()
-    # Chat signatures already describe the instruction and turn shape. Comparing their
-    # shared system text would conflate distinct steps in the same conversation.
-    for key in templates:
-        if key.startswith(_CHAT_PREFIX) and key not in known:
-            known[key] = reserve_task_id([key], taken)
-    names = sorted(
-        key for key in templates.keys() | known.keys() if not key.startswith(_CHAT_PREFIX)
-    )
+    buckets: dict[str | None, dict[str, str]] = defaultdict(dict)
+    for key in sorted(templates.keys() | known.keys()):
+        if key.startswith(_CHAT_PREFIX):
+            system, _, directive = key.removeprefix(_CHAT_PREFIX).rpartition(" | ")
+            # A shared system prompt can serve several directives and reply types.
+            if _DIRECTIVE.match(directive.removeprefix("please ")):
+                directive = _DIRECTIVE_END.split(directive, maxsplit=1)[0].rstrip()
+            buckets[directive][key] = normalize_system(system)
+        else:
+            buckets[None][key] = key
+    for texts in buckets.values():
+        if any(key not in known for key in texts):
+            assign_task_ids(texts, known, taken)
+    for key, items in templates.items():
+        groups.setdefault(known[key], []).extend(items)
+    return groups
+
+
+def assign_task_ids(texts: dict[str, str], known: dict[str, str], taken: set[str]) -> None:
+    names = list(texts)
     positions = {name: index for index, name in enumerate(names)}
     clusters = list(range(len(names)))
     distances = None
     if len(names) > 1:
         vectors = TfidfVectorizer(analyzer="char", ngram_range=(1, 4)).fit_transform(
-            [name or "<empty>" for name in names]
+            [text or "<empty>" for text in texts.values()]
         )
         distances = cosine_distances(vectors)
         clusters = AgglomerativeClustering(
@@ -189,9 +217,6 @@ def group_calls(calls: list[Call], known: dict[str, str]) -> dict[str, list[Call
             for key in new_keys:
                 nearest = min(anchors, key=lambda item: distances[positions[key], positions[item]])
                 known[key] = known[nearest]
-    for key, items in templates.items():
-        groups.setdefault(known[key], []).extend(items)
-    return groups
 
 
 def analyze(

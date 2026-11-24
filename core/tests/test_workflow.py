@@ -52,6 +52,64 @@ def test_short_system_instructions_group_free_text_variants(dataset):
     assert actual == expected
 
 
+@pytest.mark.parametrize("role", ["system", "developer"])
+def test_chat_grouping_ignores_system_values_and_inline_payloads(dataset, role):
+    calls = [
+        dataset[0][0].model_copy(
+            update={
+                "step": None,
+                "prompt": json.dumps(
+                    [
+                        {
+                            "role": role,
+                            "content": (
+                                "You are a support bot for Acme. "
+                                f"Today is {date}. Customer: {customer}, tier 2."
+                            ),
+                        },
+                        {"role": "user", "content": f"{instruction}{payload}"},
+                    ]
+                ),
+            }
+        )
+        for instruction in ("Translate to French", "Translate to German")
+        for date, customer, payload in (
+            ("2026-11-17", "Alice Nguyen", ": The package is late."),
+            ("2026-11-24", "Salma Khan", "\nIs this item still in stock?"),
+            ("2026-11-28", "Liam O'Neil", ": Check these details: red, size M."),
+        )
+    ]
+    groups = {frozenset(call.prompt for call in task.calls) for task in rank(calls, {}, 30)}
+    assert groups == {frozenset(call.prompt for call in group) for group in (calls[:3], calls[3:])}
+
+
+def test_chat_grouping_merges_near_duplicate_system_prompts(dataset):
+    systems = [
+        "Classify customer support requests by topic. Use shipping, returns, or billing.",
+        "Classify customer support requests by topic. Use shipping, returns, or billing only.",
+    ]
+    calls = [
+        dataset[0][0].model_copy(
+            update={
+                "step": None,
+                "prompt": json.dumps(
+                    [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": "My invoice is wrong."},
+                    ]
+                ),
+            }
+        )
+        for system in systems
+    ]
+    tasks = rank(calls, {}, 30)
+    assert len(tasks) == 1
+    assert tasks[0].calls == calls
+    known = {}
+    first_id = rank(calls[:1], {}, 30, known)[0].id
+    assert rank(calls[1:], {}, 30, known)[0].id == first_id
+
+
 def test_unlabelled_chat_followups_group_requested_values_without_specific_words(dataset):
     replies = [
         ("Could you give me the details?", "It's 212-555-0184."),
