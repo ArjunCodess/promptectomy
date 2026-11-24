@@ -1,1 +1,1 @@
-{"min_accuracy":1,"min_holdout":4,"holdout_fraction":0.5,"seed":42}
+{"min_accuracy":0.85,"min_holdout":20,"holdout_fraction":0.5,"seed":42}

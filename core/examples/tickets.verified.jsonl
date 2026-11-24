@@ -1,8 +1,48 @@
-{"input":"Extract the ticket ID.\nText: Ticket CT-1042 needs review.","expected":"CT-1042","verified":true,"source":"checked against fixture ticket ID"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-8120 needs review.","expected":"CT-8120","verified":true,"source":"checked against fixture ticket ID"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-21056 needs review.","expected":null,"verified":true,"source":"checked against fixture ticket ID rules"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-0031 needs review.","expected":"CT-0031","verified":true,"source":"checked against fixture ticket ID"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-4842 needs review.","expected":"CT-4842","verified":true,"source":"checked against fixture ticket ID"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1042 needs review.","expected":"CT-1042","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1043 needs review.","expected":"CT-1043","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-10445 needs review.","expected":null,"verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1045 needs review.","expected":"CT-1045","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1046 needs review.","expected":"CT-1046","verified":true,"source":"checked against fixture ticket ID rules"}
 {"input":"Extract the ticket ID.\nText: A new ticket has no ID yet and still needs review.","expected":null,"verified":true,"source":"checked against fixture ticket ID rules"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-2843 needs review.","expected":"CT-2843","verified":true,"source":"checked against fixture ticket ID"}
-{"input":"Extract the ticket ID.\nText: Ticket CT-1288 needs review.","expected":"CT-1288","verified":true,"source":"checked against fixture ticket ID"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1048 needs review.","expected":"CT-1048","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1049 needs review.","expected":"CT-1049","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1050 needs review.","expected":"CT-1050","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1051 needs review.","expected":"CT-1051","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1052 needs review.","expected":"CT-1052","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1053 needs review.","expected":"CT-1053","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1054 needs review.","expected":"CT-1054","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1055 needs review.","expected":"CT-1055","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1056 needs review.","expected":"CT-1056","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1057 needs review.","expected":"CT-1057","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1058 needs review.","expected":"CT-1058","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1059 needs review.","expected":"CT-1059","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1060 needs review.","expected":"CT-1060","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1061 needs review.","expected":"CT-1061","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1062 needs review.","expected":"CT-1062","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1063 needs review.","expected":"CT-1063","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1064 needs review.","expected":"CT-1064","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1065 needs review.","expected":"CT-1065","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1066 needs review.","expected":"CT-1066","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1067 needs review.","expected":"CT-1067","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1068 needs review.","expected":"CT-1068","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1069 needs review.","expected":"CT-1069","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1070 needs review.","expected":"CT-1070","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1071 needs review.","expected":"CT-1071","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1072 needs review.","expected":"CT-1072","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1073 needs review.","expected":"CT-1073","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1074 needs review.","expected":"CT-1074","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1075 needs review.","expected":"CT-1075","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1076 needs review.","expected":"CT-1076","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1077 needs review.","expected":"CT-1077","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1078 needs review.","expected":"CT-1078","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1079 needs review.","expected":"CT-1079","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1080 needs review.","expected":"CT-1080","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1081 needs review.","expected":"CT-1081","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1082 needs review.","expected":"CT-1082","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1083 needs review.","expected":"CT-1083","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1084 needs review.","expected":"CT-1084","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1085 needs review.","expected":"CT-1085","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1086 needs review.","expected":"CT-1086","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1087 needs review.","expected":"CT-1087","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1088 needs review.","expected":"CT-1088","verified":true,"source":"checked against fixture ticket ID rules"}
+{"input":"Extract the ticket ID.\nText: Ticket CT-1089 needs review.","expected":"CT-1089","verified":true,"source":"checked against fixture ticket ID rules"}

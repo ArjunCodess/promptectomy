@@ -1,2 +1,1 @@
-{"input":"Classify the support category.\nText: Invoice due tomorrow.","expected":"billing","verified":true,"source":"checked against fixture routing policy"}
-{"input":"Classify the support category.\nText: Cannot reset my password.","expected":"account","verified":true,"source":"checked against fixture routing policy"}
+

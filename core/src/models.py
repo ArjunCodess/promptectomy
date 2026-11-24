@@ -1,7 +1,15 @@
 import math
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue, StringConstraints
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    StringConstraints,
+)
 
 Label = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 Amount = Annotated[float, Field(ge=0)]
@@ -31,11 +39,13 @@ class Call(Record):
     prompt: str
     output: FiniteJson
     model: Label
-    input_tokens: Annotated[int, Field(ge=0)]
-    output_tokens: Annotated[int, Field(ge=0)]
+    input_tokens: Annotated[int, Field(ge=0)] | None
+    output_tokens: Annotated[int, Field(ge=0)] | None
     step: Label | None = None
     cost_usd: Amount | None = None
     latency_ms: Amount | None = None
+    timestamp: AwareDatetime | None = None
+    redacted: bool = False
 
 
 class Price(Record):
@@ -49,10 +59,11 @@ class TaskSpec(Record):
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=12000)
     ]
     complexity: Literal["simple", "hard"] = "simple"
+    rule: Literal["ticket-id", "iso-date", "email", "trim", "lowercase", "keep-ai"] | None = None
 
 
 class Suggestion(Record):
-    status: Literal["candidate", "unsupported"]
+    status: Literal["candidate", "unsupported", "keep_ai"]
     code: str
     assumptions: list[Label]
 
