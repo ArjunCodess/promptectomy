@@ -17,19 +17,21 @@ const commands = [
 ].join("\n");
 
 const workflow = [
-  { command: "ingest", detail: "Import JSONL and mask sensitive text" },
+  { command: "ingest", detail: "Import native JSONL, OpenAI, LangSmith, or OpenTelemetry logs" },
   { command: "analyze", detail: "Group calls. Rank tasks by cost and frequency." },
   { command: "suggest", detail: "Get Python and assumptions from your task description" },
-  { command: "test", detail: "Score reviewed code on verified examples" },
+  { command: "review", detail: "Sample task inputs with model answers hidden" },
+  { command: "attest", detail: "Sign checked answers with a reviewer key" },
+  { command: "test", detail: "Score the Python against signed holdout examples" },
 ];
 
 const questions = [
   ["Do I need a Groq key?", "Only if you use a Groq model for suggest. The local rules, demo, analysis, and verification work without a key."],
-  ["What gets sent to Groq?", "Only the task description you write for suggest. Keep it generic. Your trace and verified answers stay on your machine."],
-  ["What makes an example verified?", "A person or a trusted source checks the expected answer independently. The original model output has its own column in the report."],
-  ["What does PASS mean?", "The reviewed Python met the confidence threshold on independently checked prompts from the task. Use the report and its assumptions when reviewing a production change."],
+  ["What gets sent to Groq?", "Suggest sends the task description and, if needed, asks Groq to repair its own code. Your traces and reviewed answers stay on your machine."],
+  ["What does a reviewer sign?", "Review prepares task inputs with model answers hidden. After checking the answers against a reference, a reviewer signs them with attest."],
+  ["What does PASS mean?", "The replacement met the confidence threshold on at least 20 distinct holdout inputs with signed answers. Check the report before deploying it."],
   ["What happens when there’s too little evidence?", "UNVERIFIED tells you what evidence is missing. KEEP_AI means the task should stay with the model because it depends on context or judgment."],
-  ["Can I use logs from any provider?", "Yes. Export the calls as JSONL with the prompt, output, model, and token counts. Include a step label if your logger has one."],
+  ["Which log formats can I import?", "Use native JSONL, OpenAI Chat Completions or Batch exports, LangSmith runs, or OpenTelemetry GenAI spans. Step labels and token counts can be omitted."],
 ];
 
 export default function Home() {
@@ -49,7 +51,7 @@ export default function Home() {
         <section className="shell hero" aria-labelledby="hero-title">
           <div>
             <h1 id="hero-title">Cut the calls <br />you can replace</h1>
-            <p className="hero-lede">Replace repetitive LLM calls with Python tested against independently verified answers</p>
+            <p className="hero-lede">Replace repetitive LLM calls with Python tested against signed reference answers</p>
             <p className="hero-meta">Open source under MIT. Runs on your machine.</p>
             <a href="#get-started" className="action">
               Run the local demo
@@ -74,7 +76,7 @@ export default function Home() {
         </section>
 
         <section className="shell evidence" aria-labelledby="evidence-title">
-          <h2 id="evidence-title">Your logs show what the model said.<br />Verified examples show what it got right</h2>
+          <h2 id="evidence-title">Your logs show what the model said.<br />Reference answers give you something to test</h2>
         </section>
 
         <section id="questions" className="shell questions" aria-labelledby="questions-title">

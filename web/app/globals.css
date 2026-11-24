@@ -233,7 +233,7 @@ button[data-slot="button"]:focus-visible { box-shadow: none; }
 .workflow h2, .questions h2, .start h2 { font-size: var(--text-4xl); line-height: 1.12; }
 .workflow-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0 1.5rem;
   margin-top: 1.5rem;
   padding: 0;

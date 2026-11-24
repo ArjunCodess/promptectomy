@@ -10,7 +10,7 @@ const examples = {
     label: "Ticket ID extraction",
     task: "extract_ticket_id",
     verdict: "PASS",
-    note: "Review the Python before shipping",
+    note: "86.2% Wilson lower bound. Review the Python before shipping.",
     fee: "$0.0288",
     replacement: "$0.0000",
   },

@@ -20,7 +20,9 @@ uv run python examples/demo.py
 uv run python examples/tau_demo.py
 ```
 
-The first command runs a fixture offline. The second downloads a pinned [τ-bench retail-agent trace](https://github.com/sierra-research/tau-bench/tree/59a200c6d575d595120f1cb70fea53cef0632f6b/historical_trajectories). It checks email authentication on one qualifying turn per benchmark task and keeps the AI for open-ended replies. The published calls lack per-call token counts and timing, so those baseline figures are unavailable. Reports are under `core/.promptectomy/`. Neither demo needs a Groq key.
+The fixture runs offline and gives PASS and KEEP_AI. The τ-bench replay groups unlabelled retail calls, then uses the benchmark's published user database for the expected email addresses. The demo signs its own labels. The replacement matches 20 of 22 holdout turns and returns UNVERIFIED because two turns supplied more than one address. The separate reply task returns KEEP_AI. [τ-bench source](https://github.com/sierra-research/tau-bench/tree/59a200c6d575d595120f1cb70fea53cef0632f6b)
+
+The replay estimates fees by tokenizing the archived messages and responses at the bundled gpt-4o rates. It omits unlogged tool definitions and protocol overhead, and the archive has no original latency. Reports are under `core/.promptectomy/`. Neither demo needs a Groq key.
 
 ## Use your own logs
 
@@ -35,7 +37,9 @@ Native JSONL rows contain `prompt`, `output`, `model`, `input_tokens`, and `outp
 
 Use `ingest --format openai` for JSONL rows containing Chat Completions `request` and `response` bodies. Use `--format openai-batch --requests INPUT.jsonl` for paired Batch files, `--format otel` for OTLP JSON with GenAI message and usage attributes, or `--format langsmith` for LLM runs with one chat input batch and one generation batch. Redact with `ingest --redact REGEX` before drafting review inputs. Verification uses the stored, redacted values.
 
-Use the [example task](core/examples/tickets.task.json) to write a description without sensitive data. Only that description goes to Groq. With a key in `.env` or `GROQ_API_KEY`, `suggest` uses GPT OSS 20B for simple tasks and 120B for hard ones. Use `--model ID` to override it or `--model rules` to force the offline rules. Rules also run when the key is absent.
+For unlabelled chat calls, grouping reads the system instructions and the user turn. Give a workflow an explicit step label when it has one. For LangSmith, set `extra.metadata.promptectomy_step`. For OpenTelemetry, set `promptectomy.step`.
+
+Use the [example task](core/examples/tickets.task.json) to write a description without sensitive data. With a key in `.env` or `GROQ_API_KEY`, `suggest` uses GPT OSS 20B for simple tasks and 120B for hard ones. It can ask Groq to repair its own response once. Logs and review files stay local. Use `--model ID` to override it or `--model rules` to force the offline rules. Rules also run when the key is absent. Use `rule: "keep-ai"` when you've decided a task should stay with the model.
 
 ## Verify a replacement
 
@@ -50,7 +54,7 @@ promptectomy test candidate.json review.jsonl policy.json --reviewed \
 
 Choose [the policy](core/examples/policy.json) before review. PASS requires at least 20 distinct held-out prompts from the task and a 95% Wilson lower bound of at least 85%, or the stricter policy you set. Use `--development` to iterate without getting a PASS. Keep `state.sqlite3` beside the store. It locks task IDs and prevents a changed run from reusing inputs already scored there. The signature binds the labels to the reviewer's key. Keep the holdout with the reviewer until the candidate is ready. The evidence still depends on that review.
 
-The candidate runs as a restricted Python function in a fresh worker with a 128 MiB memory cap and a three-second timeout per input. The sandbox allows basic operations plus parts of `re` and `json`. It blocks file and network access. Inspect exported Python before using it elsewhere.
+The candidate runs as a restricted Python function with a three-second timeout per input. Linux and Windows enforce a 128 MiB process memory limit. On macOS the parent samples resident memory and kills workers over 128 MiB, so short allocations can overshoot between samples. The sandbox blocks file and network access on all three platforms. Inspect exported Python before using it elsewhere.
 
 PASS exits with 0. FAIL exits with 1 and records mismatches or sandbox violations. UNVERIFIED exits with 3 and says what's missing. KEEP_AI exits with 4 and explains why the task should stay with the model. Use a `.md` or `.html` report path, and check the report for sensitive inputs before sharing.
 
