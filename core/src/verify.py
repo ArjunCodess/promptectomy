@@ -9,6 +9,7 @@ from dataclasses import asdict, dataclass, field
 from html import escape
 from pathlib import Path
 from statistics import median
+from threading import Event, Thread
 from typing import Literal
 
 from pydantic import Field, TypeAdapter
@@ -17,7 +18,7 @@ from .analysis import Task
 from .evidence import COPIED, MIN_ACCURACY, MIN_HOLDOUT, Z_95, claim_holdout, digest
 from .models import Call, Candidate, Example, FiniteJson, Policy, Record
 from .storage import canonical
-from .worker import MAX_INPUT, validate_code
+from .worker import INVALID_CODE, MAX_INPUT, MEMORY_BYTES, validate_code
 
 
 class Output(Record):
@@ -43,6 +44,7 @@ class Result:
     observed_median_ms: float | None
     required_holdout: int
     required_accuracy: float
+    estimated_priced_calls: int = 0
     verdict: Literal["PASS", "FAIL", "UNVERIFIED", "KEEP_AI"] = "UNVERIFIED"
     reason: str = ""
     withheld: int = 0
@@ -93,6 +95,8 @@ class Result:
             if self.monthly_usd is not None
             else "Unavailable"
         )
+        if self.estimated_priced_calls:
+            before += f", {self.estimated_priced_calls} with estimated token counts"
         after = (
             "$0 in model fees if the replacement handles every call"
             if self.verdict == "PASS"
@@ -150,24 +154,110 @@ class Result:
 def run_candidate(code: str, prompt: str, directory: str) -> Output | ExecutionError:
     if len(prompt.encode()) > MAX_INPUT:
         return ExecutionError(error="Input exceeds the 1 MiB sandbox limit.")
+    args = [sys.executable, "-I", "-S", "-X", "utf8", str(_WORKER)]
+    payload = canonical({"code": code, "input": prompt})
+    environment = {key: os.environ[key] for key in ("SystemRoot", "WINDIR") if key in os.environ}
     try:
-        process = subprocess.run(
-            [sys.executable, "-I", "-S", "-X", "utf8", str(_WORKER)],
-            input=canonical({"code": code, "input": prompt}),
-            capture_output=True,
-            encoding="utf-8",
-            timeout=3,
-            cwd=directory,
-            env={key: os.environ[key] for key in ("SystemRoot", "WINDIR") if key in os.environ},
-        )
+        if sys.platform == "darwin":
+            process = run_with_rss_monitor(args, payload, directory, environment)
+        else:
+            process = subprocess.run(
+                args,
+                input=payload,
+                capture_output=True,
+                encoding="utf-8",
+                timeout=3,
+                cwd=directory,
+                env=environment,
+            )
     except subprocess.TimeoutExpired:
         return ExecutionError(error="Candidate exceeded the 3-second limit.")
+    if isinstance(process, ExecutionError):
+        return process
     if process.returncode:
         return ExecutionError(error=f"Candidate worker exited with code {process.returncode}.")
     try:
         return _RESULT.validate_json(process.stdout)
     except ValueError:
         return ExecutionError(error="Candidate worker did not return a valid result.")
+
+
+def run_with_rss_monitor(
+    args: list[str],
+    payload: str,
+    directory: str,
+    environment: dict[str, str],
+) -> subprocess.CompletedProcess[str] | ExecutionError:
+    # Darwin does not support RLIMIT_AS. The child waits for stdin while monitoring starts.
+    try:
+        import psutil
+    except ImportError:
+        return ExecutionError(
+            error="The macOS RSS monitor is unavailable.", isolation_unavailable=True
+        )
+
+    with subprocess.Popen(
+        args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+        cwd=directory,
+        env=environment,
+    ) as child:
+        finished = Event()
+        ready = Event()
+        errors: list[ExecutionError] = []
+
+        def monitor():
+            try:
+                process = psutil.Process(child.pid)
+                while not finished.is_set():
+                    if process.memory_info().rss > MEMORY_BYTES:
+                        errors.append(
+                            ExecutionError(
+                                error="Candidate exceeded the 128 MiB memory limit (RSS)."
+                            )
+                        )
+                        child.kill()
+                        break
+                    ready.set()
+                    finished.wait(0.005)
+            except psutil.NoSuchProcess:
+                pass
+            except psutil.Error:
+                errors.append(
+                    ExecutionError(
+                        error="Could not monitor candidate memory.",
+                        isolation_unavailable=True,
+                    )
+                )
+                child.kill()
+            finally:
+                ready.set()
+
+        watcher = Thread(target=monitor)
+        watcher.start()
+        try:
+            if not ready.wait(3):
+                child.kill()
+                child.communicate()
+                return ExecutionError(
+                    error="Could not start the RSS monitor.", isolation_unavailable=True
+                )
+            stdout, stderr = child.communicate(payload, timeout=3)
+        except subprocess.TimeoutExpired:
+            child.kill()
+            child.communicate()
+            raise
+        finally:
+            if child.poll() is None:
+                child.kill()
+            finished.set()
+            watcher.join()
+        if errors:
+            return errors[0]
+        return subprocess.CompletedProcess(args, child.returncode, stdout, stderr)
 
 
 def wilson_lower(matches: int, count: int) -> float:
@@ -198,6 +288,7 @@ def verify(
         observed_median_ms=task.median_ms,
         required_holdout=max(MIN_HOLDOUT, policy.min_holdout),
         required_accuracy=max(MIN_ACCURACY, policy.min_accuracy),
+        estimated_priced_calls=task.estimated_priced_calls,
     )
     if candidate.suggestion.status == "keep_ai":
         result.verdict = "KEEP_AI"
@@ -210,10 +301,15 @@ def verify(
     code = candidate.suggestion.code
     try:
         validate_code(code)
-    except (ValueError, SyntaxError, RecursionError) as error:
+    except INVALID_CODE as error:
         result.verdict = "FAIL"
         result.reason = f"Candidate blocked before execution: {error}"
         return result
+    if sys.platform == "darwin":
+        result.notes.append(
+            "macOS checks worker resident memory every 5 ms and kills it above 128 MiB. "
+            "Brief allocations can exceed that threshold between samples."
+        )
 
     observed: dict[str, list[Call]] = defaultdict(list)
     for call in task.calls:
@@ -350,5 +446,5 @@ def verify(
         result.reason = "The confidence bound is below the policy. Collect fresh evidence."
     else:
         result.verdict = "PASS"
-        result.reason = "The replacement met the policy on independently verified holdout inputs."
+        result.reason = "The replacement met the policy on signed holdout inputs."
     return result

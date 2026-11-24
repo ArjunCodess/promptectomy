@@ -40,8 +40,12 @@ SAFE_FUNCTIONS = {
         "zip",
     )
 }
+SAFE_EXCEPTIONS = {
+    cls.__name__: cls for cls in (ValueError, TypeError, KeyError, IndexError, ArithmeticError)
+}
 MODULES = {
     "re": {
+        "compile",
         "search",
         "fullmatch",
         "match",
@@ -52,6 +56,7 @@ MODULES = {
         "escape",
         "ASCII",
         "IGNORECASE",
+        "I",
         "MULTILINE",
         "DOTALL",
     },
@@ -63,14 +68,20 @@ METHODS = {
     "capitalize",
     "casefold",
     "count",
+    "copy",
+    "end",
     "endswith",
     "extend",
     "find",
+    "findall",
+    "finditer",
+    "fullmatch",
     "get",
     "group",
     "groups",
     "groupdict",
     "index",
+    "insert",
     "isalnum",
     "isalpha",
     "isascii",
@@ -84,8 +95,10 @@ METHODS = {
     "keys",
     "lower",
     "lstrip",
+    "match",
     "partition",
     "pop",
+    "remove",
     "removeprefix",
     "removesuffix",
     "replace",
@@ -93,11 +106,16 @@ METHODS = {
     "rpartition",
     "rsplit",
     "rstrip",
+    "search",
     "setdefault",
     "split",
     "splitlines",
+    "sort",
+    "span",
+    "start",
     "startswith",
     "strip",
+    "sub",
     "title",
     "update",
     "upper",
@@ -119,6 +137,8 @@ NODES = {
     ast.IfExp,
     ast.For,
     ast.While,
+    ast.Try,
+    ast.ExceptHandler,
     ast.Break,
     ast.Continue,
     ast.Pass,
@@ -172,33 +192,42 @@ NODES = {
 }
 
 
-class BlockedCode(ValueError):
+class BlockedCode(Exception):
     pass
+
+
+INVALID_CODE = (BlockedCode, SyntaxError, RecursionError)
 
 
 def validate_code(code: str):
     if len(code.encode()) > MAX_CODE:
         raise BlockedCode("Candidate source exceeds 64 KiB.")
     tree = ast.parse(code, filename="<candidate>")
-    definitions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
-    if len(definitions) != 1 or definitions[0].name != "replace":
-        raise BlockedCode("Define exactly one function named replace.")
-    function = definitions[0]
-    args = function.args
-    if (
-        len(args.posonlyargs + args.args) != 1
-        or args.kwonlyargs
-        or args.kwarg
-        or args.vararg
-        or args.defaults
-        or function.decorator_list
-        or getattr(function, "type_params", ())
-    ):
-        raise BlockedCode("replace must take one positional argument without decorators.")
-    if any(node is not function and not isinstance(node, ast.Import) for node in tree.body):
+    if any(not isinstance(node, (ast.FunctionDef, ast.Import)) for node in tree.body):
         raise BlockedCode(
-            "Only imports of re or json and the replace function may be at module scope."
+            "Module scope only permits function definitions and imports of re or json."
         )
+    definitions = {node for node in tree.body if isinstance(node, ast.FunctionDef)}
+    names = {function.name for function in definitions}
+    if "replace" not in names or len(names) != len(definitions):
+        raise BlockedCode("Define replace and give each helper a unique name.")
+    reserved = SAFE_FUNCTIONS.keys() | SAFE_EXCEPTIONS.keys() | MODULES.keys()
+    callable_names = SAFE_FUNCTIONS.keys() | names
+    for function in definitions:
+        args = function.args
+        if (
+            function.name.startswith("_")
+            or function.name in reserved
+            or args.kwonlyargs
+            or args.kwarg
+            or args.vararg
+            or args.defaults
+            or function.decorator_list
+            or getattr(function, "type_params", ())
+        ):
+            raise BlockedCode("Use plain functions with positional parameters and no decorators.")
+        if function.name == "replace" and len(args.posonlyargs + args.args) != 1:
+            raise BlockedCode("replace must take one positional argument.")
     for node in ast.walk(tree):
         if type(node) not in NODES:
             raise BlockedCode(f"Python syntax {type(node).__name__} is outside the sandbox subset.")
@@ -206,8 +235,16 @@ def validate_code(code: str):
             alias.name not in MODULES or alias.asname for alias in node.names
         ):
             raise BlockedCode("The sandbox only permits import re and import json without aliases.")
-        if isinstance(node, ast.FunctionDef) and node is not function:
+        if isinstance(node, ast.FunctionDef) and node not in definitions:
             raise BlockedCode("Nested functions are unavailable in the sandbox.")
+        if isinstance(node, ast.Try) and node.finalbody:
+            raise BlockedCode("The sandbox permits try/except without finally.")
+        if isinstance(node, ast.ExceptHandler):
+            types = node.type.elts if isinstance(node.type, ast.Tuple) else [node.type]
+            if not types or any(
+                not isinstance(item, ast.Name) or item.id not in SAFE_EXCEPTIONS for item in types
+            ):
+                raise BlockedCode("Catch a named, allowlisted data exception.")
         if isinstance(node, ast.Name) and node.id.startswith("_"):
             raise BlockedCode("Private Python names are unavailable in the sandbox.")
         if isinstance(node, ast.Attribute):
@@ -218,7 +255,7 @@ def validate_code(code: str):
                 raise BlockedCode(f"Attribute {node.attr!r} is unavailable in the sandbox.")
         if isinstance(node, ast.Call) and (
             not isinstance(node.func, (ast.Name, ast.Attribute))
-            or (isinstance(node.func, ast.Name) and node.func.id not in SAFE_FUNCTIONS)
+            or (isinstance(node.func, ast.Name) and node.func.id not in callable_names)
             or any(keyword.arg is None or keyword.arg.startswith("_") for keyword in node.keywords)
         ):
             raise BlockedCode("Only allowlisted functions and data methods can be called.")
@@ -297,7 +334,8 @@ def set_memory_limit():
 
 def main():
     try:
-        set_memory_limit()
+        if sys.platform != "darwin":
+            set_memory_limit()
     except (OSError, ValueError, ImportError) as error:
         print(
             json.dumps(
@@ -314,7 +352,9 @@ def main():
         compiled = validate_code(request["code"])
         if len(request["input"].encode()) > MAX_INPUT:
             raise BlockedCode("Input exceeds the 1 MiB sandbox limit.")
-        namespace = {"__builtins__": {**SAFE_FUNCTIONS, "__import__": safe_import}}
+        namespace = {
+            "__builtins__": {**SAFE_FUNCTIONS, **SAFE_EXCEPTIONS, "__import__": safe_import}
+        }
         sys.addaudithook(deny_host_access)
         exec(compiled, namespace)
         start = perf_counter_ns()

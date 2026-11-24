@@ -44,6 +44,7 @@ class Exchange(BaseModel):
     step: str | None = None
     latency_ms: float | None = None
     cost_usd: float | None = None
+    estimated_tokens: bool = False
 
     def call(self) -> Call:
         messages = self.request.messages
@@ -70,6 +71,7 @@ class Exchange(BaseModel):
             output_tokens=self.response.usage.completion_tokens if self.response.usage else None,
             latency_ms=self.latency_ms,
             cost_usd=self.cost_usd,
+            estimated_tokens=self.estimated_tokens,
             timestamp=(
                 datetime.fromtimestamp(self.response.created, UTC)
                 if self.response.created is not None
@@ -129,6 +131,7 @@ class SmithRun(BaseModel):
     end_time: AwareDatetime | None = None
     prompt_tokens: int | None = None
     completion_tokens: int | None = None
+    extra: dict[str, JsonValue] = Field(default_factory=dict)
 
     def call(self) -> Call | None:
         if self.run_type != "llm" or self.outputs is None:
@@ -138,6 +141,8 @@ class SmithRun(BaseModel):
         metadata = outputs.llm_output
         texts = [item.output() for item in outputs.generations[0]]
         usage = metadata.token_usage if metadata else None
+        run_metadata = self.extra.get("metadata")
+        step = run_metadata.get("promptectomy_step") if isinstance(run_metadata, dict) else None
         if not messages or not texts:
             raise ValueError("LangSmith LLM runs need messages and at least one generation.")
         elapsed = (
@@ -151,7 +156,7 @@ class SmithRun(BaseModel):
             model=(metadata.model_name if metadata else None) or self.name,
             input_tokens=usage.prompt_tokens if usage else self.prompt_tokens,
             output_tokens=usage.completion_tokens if usage else self.completion_tokens,
-            step=self.name,
+            step=step if isinstance(step, str) else None,
             latency_ms=elapsed,
             timestamp=self.start_time,
         )
@@ -186,7 +191,7 @@ class Span(BaseModel):
         ]
         if any(token is None for token in tokens):
             raise ValueError(f"OpenTelemetry span {self.name!r} lacks token usage.")
-        agent = attrs.get("gen_ai.agent.name")
+        step = attrs.get("promptectomy.step")
         end = datetime(1970, 1, 1, tzinfo=UTC) + timedelta(
             microseconds=self.endTimeUnixNano // 1000
         )
@@ -196,7 +201,7 @@ class Span(BaseModel):
             model=model,
             input_tokens=int(tokens[0]),
             output_tokens=int(tokens[1]),
-            step=f"{agent}/{self.name}" if isinstance(agent, str) else self.name,
+            step=step if isinstance(step, str) else None,
             latency_ms=(self.endTimeUnixNano - self.startTimeUnixNano) / 1_000_000,
             timestamp=end,
         )

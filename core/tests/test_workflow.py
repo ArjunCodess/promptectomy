@@ -168,6 +168,33 @@ def test_worker_enforces_memory_cap(tmp_path):
     assert "memory limit" in result.error
 
 
+def test_worker_supports_plain_helpers_and_data_exceptions(tmp_path):
+    code = """
+import re
+
+def parse(value):
+    try:
+        return int(value)
+    except ValueError:
+        return 0
+
+def replace(prompt):
+    pattern = re.compile(r"ID: (\\d+)", re.I)
+    span = pattern.search(prompt).span(1)
+    return parse(prompt[span[0]:span[1]])
+"""
+    result = run_candidate(code, "id: 92", str(tmp_path))
+    assert result.value == 92
+
+
+@pytest.mark.parametrize("handler", ["except:", "except MemoryError:", "finally:"])
+def test_worker_keeps_sandbox_limit_exceptions_out_of_reach(tmp_path, handler):
+    code = f"def replace(prompt):\n    try:\n        return None\n    {handler}\n        pass\n"
+    result = run_candidate(code, "", str(tmp_path))
+    assert isinstance(result, ExecutionError)
+    assert "BlockedCode" in result.error
+
+
 def test_minimum_sample_and_wilson(dataset, tmp_path):
     calls, cases = dataset
     weak = Policy(min_accuracy=0.5, min_holdout=1, holdout_fraction=0.5)
@@ -269,8 +296,13 @@ def test_rules_without_key_and_keep_ai(tmp_path, monkeypatch):
     monkeypatch.setattr("promptectomy.cli.find_dotenv", lambda **options: "")
     runner = CliRunner()
     spec, out = tmp_path / "task.json", tmp_path / "candidate.json"
-    for description, status in [(SPEC.description, "candidate"), ("Draft a reply", "keep_ai")]:
-        spec.write_text(TaskSpec(task=SPEC.task, description=description).model_dump_json())
+    cases = [
+        (TaskSpec(task=SPEC.task, description=SPEC.description), "candidate"),
+        (TaskSpec(task=SPEC.task, description="Draft a reply"), "unsupported"),
+        (TaskSpec(task=SPEC.task, description="Draft a reply", rule="keep-ai"), "keep_ai"),
+    ]
+    for specification, status in cases:
+        spec.write_text(specification.model_dump_json())
         result = runner.invoke(app, ["suggest", str(spec), "--out", str(out)])
         assert result.exit_code == 0, result.output
         assert Candidate.model_validate_json(out.read_bytes()).suggestion.status == status
@@ -388,6 +420,7 @@ def test_langsmith_import_and_long_ids(tmp_path):
     step = "call_a_real_model_with_a_long_step_label"
     run = {
         "name": step,
+        "extra": {"metadata": {"promptectomy_step": step}},
         "run_type": "llm",
         "start_time": "2026-01-01T00:00:00Z",
         "end_time": "2026-01-01T00:00:00.400Z",
@@ -409,6 +442,115 @@ def test_langsmith_import_and_long_ids(tmp_path):
     assert result.exit_code == 0, result.output
     assert step in result.output
     assert "Log window: 7 days" in result.output
+
+
+@pytest.mark.parametrize("format", ["openai", "langsmith"])
+@pytest.mark.parametrize("instruction_role", ["system", "user"])
+def test_unlabelled_chat_tasks_group_by_instruction(tmp_path, format, instruction_role):
+    log, store = tmp_path / "chat.jsonl", tmp_path / "calls.jsonl"
+    chat_jobs = [
+        ("Convert the date to ISO 8601", "Date: 2021-03-17"),
+        ("Extract the first email address", "Email: contact@example.com"),
+        ("Draft an empathetic reply", "Request: My order is late"),
+    ]
+    rows = []
+    for instruction, payload in chat_jobs:
+        for index in range(4):
+            messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        instruction
+                        if instruction_role == "system"
+                        else "You are a helpful assistant."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"{instruction}\nInput: {payload} ({index})"
+                        if instruction_role == "user"
+                        else f"{payload} ({index})"
+                    ),
+                },
+            ]
+            if format == "openai":
+                rows.append(
+                    {
+                        "request": {"model": "gpt-4o", "messages": messages},
+                        "response": {"choices": [{"message": {"content": "example"}}]},
+                    }
+                )
+            else:
+                rows.append(
+                    {
+                        "name": "ChatOpenAI",
+                        "run_type": "llm",
+                        "inputs": {"messages": [messages]},
+                        "outputs": {"generations": [[{"text": "example"}]]},
+                    }
+                )
+    log.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    result = CliRunner().invoke(
+        app, ["ingest", str(log), "--format", format, "--store", str(store)]
+    )
+    assert result.exit_code == 0, result.output
+    tasks = rank(load_rows(store, Call), {}, 30)
+    assert sorted(len(task.calls) for task in tasks) == [4, 4, 4]
+    assert {task.kind for task in tasks} == {"extraction", "conversion", "unknown"}
+
+
+@pytest.mark.parametrize("repair_ok", [True, False])
+def test_groq_repairs_only_once(monkeypatch, repair_ok):
+    from promptectomy import suggest
+
+    sent = []
+
+    def create(**kwargs):
+        sent.append(kwargs["messages"])
+        code = "def replace(prompt): return None"
+        if not repair_ok or len(sent) == 1:
+            code = "import math\n" + code
+        payload = json.dumps({"status": "candidate", "code": code, "assumptions": []})
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=payload))])
+
+    class Client:
+        def __init__(self, **kwargs):
+            pass
+
+        def __enter__(self):
+            return SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+
+        def __exit__(self, *exc_info):
+            pass
+
+    monkeypatch.setattr(suggest, "Groq", Client)
+    proposal = suggest.generate(SPEC, "fake-key")
+    assert len(sent) == 2
+    assert sent[1][-2]["role"] == "assistant"
+    assert "only permits import re and import json" in sent[1][-1]["content"]
+    if repair_ok:
+        assert proposal.suggestion.status == "candidate"
+    else:
+        assert proposal.suggestion.status == "unsupported"
+        assert not proposal.suggestion.code
+
+
+def test_extraction_wording_never_bypasses_configured_model(tmp_path, monkeypatch):
+    spec, output = tmp_path / "task.json", tmp_path / "candidate.json"
+    task = TaskSpec(task=SPEC.task, description="Extract the recommended dosage from the label.")
+    spec.write_text(task.model_dump_json())
+    requested = []
+
+    def generate(specification, key, model):
+        requested.append((specification, key, model))
+        return offline(SPEC)
+
+    monkeypatch.setenv("GROQ_API_KEY", "fake-key")
+    monkeypatch.setattr("promptectomy.suggest.generate", generate)
+    result = CliRunner().invoke(app, ["suggest", str(spec), "--out", str(output)])
+    assert result.exit_code == 0, result.output
+    assert requested == [(task, "fake-key", None)]
 
 
 @pytest.mark.parametrize(

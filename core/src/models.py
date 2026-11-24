@@ -46,6 +46,7 @@ class Call(Record):
     latency_ms: Amount | None = None
     timestamp: AwareDatetime | None = None
     redacted: bool = False
+    estimated_tokens: bool = False
 
 
 class Price(Record):

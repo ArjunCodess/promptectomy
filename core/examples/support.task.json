@@ -1,1 +1,1 @@
-{"task":"draft_support_reply","description":"Draft a reply to a customer support request using the context in the conversation."}
+{"task":"draft_support_reply","rule":"keep-ai","description":"Support replies depend on conversation context. Verify fixed fields such as ticket IDs separately."}

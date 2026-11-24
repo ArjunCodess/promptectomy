@@ -153,6 +153,8 @@ def analyze(store: Path = STORE, prices: PRICES = None, days: DAYS = None):
             if task.monthly_usd is not None
             else "-"
         )
+        if task.estimated_priced_calls:
+            cost += f", {task.estimated_priced_calls} with estimated tokens"
         latency = (
             f"{task.median_ms:.2f} ({task.timed_calls}/{len(task.calls)})"
             if task.median_ms is not None
@@ -258,9 +260,7 @@ def suggest(
     ):
         raise ValueError("Use distinct paths for the task spec, candidate, and Python export.")
     api_key = ""
-    if model != "rules" and not (
-        task_spec.rule == "keep-ai" or (model is None and local.suggestion.status == "keep_ai")
-    ):
+    if model != "rules" and task_spec.rule != "keep-ai":
         api_key = os.environ.get("GROQ_API_KEY", "").strip()
         if not api_key:
             dotenv = find_dotenv(usecwd=True)
@@ -275,8 +275,6 @@ def suggest(
         candidate = generate(task_spec, api_key, model) if api_key else local
     except APIError as error:
         raise ValueError(f"Groq request failed ({type(error).__name__}).") from None
-    except SyntaxError as error:
-        raise ValueError(f"Groq returned invalid Python on line {error.lineno}.") from None
     write_text(out, candidate.model_dump_json(indent=2) + "\n")
     if candidate.suggestion.status == "candidate":
         if code_out:
