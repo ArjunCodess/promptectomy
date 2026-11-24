@@ -16,7 +16,16 @@ from .storage import canonical
 _DATA_MARKER = re.compile(r"(?im)(?:^|\s)(?:input|email|text|data|payload|value)\s*:\s*(?=\S)")
 _VARIABLES = re.compile(r'\{\{.+?\}\}|"(?:[^"\\]|\\.)*"|\b\d+(?:[.\-/]\d+)*\b')
 _EMAIL = re.compile(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", re.I)
-_EMAIL_REQUEST = re.compile(r"\b(please|provide|share|give|tell|need|what|could|can|may)\b", re.I)
+_CHAT_PREFIX = "chat | "
+_DETAIL_REQUEST = re.compile(r"\b(please|provide|share|give|tell|need|what|could|can|may)\b", re.I)
+_REPLY_VALUE = re.compile(
+    rf"(?P<email>{_EMAIL.pattern})"
+    r"|(?P<date>\b\d{4}-\d{2}-\d{2}\b)"
+    r"|(?P<reference>\b[a-z]+-\d+\b|\#\d+\b)"
+    r"|(?P<phone>(?<!\w)(?:\+\d{1,3}[ .-])?(?:\(\d{2,4}\)|\d{2,4})[ .-]\d{3,4}[ .-]\d{3,4}\b)"
+    r"|(?P<number>\b\d{3,}\b)",
+    re.I,
+)
 _DIRECTIVE = re.compile(
     r"\b(extract|parse|classify|convert|format|normalize|transform|draft|write|summarize|translate)\b",
     re.I,
@@ -109,22 +118,26 @@ def template(prompt: str) -> str:
         return instruction_prefix(prompt)
 
     system = " ".join(
-        instruction_prefix(text) for role, text in turns if role in ("system", "developer")
+        " ".join(text.casefold().split()) for role, text in turns if role in ("system", "developer")
     )[:240]
     user = turns[last_user][1]
+    directive = instruction_prefix(user)
     previous_role, previous = turns[last_user - 1] if last_user else ("", "")
-    if (
-        previous_role == "assistant"
-        and "email" in previous.casefold()
-        and _EMAIL_REQUEST.search(previous)
-        and _EMAIL.search(user)
-    ):
-        directive = "find the requested email address"
-    else:
-        directive = instruction_prefix(user)
-        if _DIRECTIVE.match(system) and not _DIRECTIVE.search(directive):
-            directive = ""
-    return f"chat {system} | {directive}"
+    if system and not _DIRECTIVE.match(directive.removeprefix("please ")):
+        value = _REPLY_VALUE.search(user) if previous_role == "assistant" else None
+        directive = (
+            f"reply with {value.lastgroup}" if value and _DETAIL_REQUEST.search(previous) else ""
+        )
+    return f"{_CHAT_PREFIX}{system} | {directive}"
+
+
+def reserve_task_id(keys: list[str], taken: set[str]) -> str:
+    digest = hashlib.sha256("\n".join(keys).encode()).hexdigest()
+    task_id = f"template-{digest[:12]}"
+    while task_id in taken:
+        task_id += "-"
+    taken.add(task_id)
+    return task_id
 
 
 def group_calls(calls: list[Call], known: dict[str, str]) -> dict[str, list[Call]]:
@@ -140,7 +153,15 @@ def group_calls(calls: list[Call], known: dict[str, str]) -> dict[str, list[Call
         return groups
     if set(known.values()) & groups.keys():
         raise ValueError("A step label collides with a persisted task ID. Rename the step.")
-    names = sorted(templates.keys() | known.keys())
+    taken = set(known.values()) | groups.keys()
+    # Chat signatures already describe the instruction and turn shape. Comparing their
+    # shared system text would conflate distinct steps in the same conversation.
+    for key in templates:
+        if key.startswith(_CHAT_PREFIX) and key not in known:
+            known[key] = reserve_task_id([key], taken)
+    names = sorted(
+        key for key in templates.keys() | known.keys() if not key.startswith(_CHAT_PREFIX)
+    )
     positions = {name: index for index, name in enumerate(names)}
     clusters = list(range(len(names)))
     distances = None
@@ -156,16 +177,11 @@ def group_calls(calls: list[Call], known: dict[str, str]) -> dict[str, list[Call
     members: dict[int, list[str]] = {}
     for cluster, name in zip(clusters, names, strict=True):
         members.setdefault(cluster, []).append(name)
-    taken = set(known.values()) | groups.keys()
     for keys in members.values():
         anchors = [key for key in keys if key in known]
         new_keys = [key for key in keys if key not in known]
         if not anchors:
-            digest = hashlib.sha256("\n".join(keys).encode()).hexdigest()
-            task_id = f"template-{digest[:12]}"
-            while task_id in taken:
-                task_id += "-"
-            taken.add(task_id)
+            task_id = reserve_task_id(keys, taken)
             known.update(dict.fromkeys(new_keys, task_id))
             continue
         if new_keys:

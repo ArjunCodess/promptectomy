@@ -23,7 +23,7 @@ CHECKSUMS = {
 }
 TOOL = "find_user_id_by_email"
 CACHE = DEMO.parent / "tau-demo"
-WORK = CACHE / "unlabelled"
+WORK = CACHE / "v0.3"
 CODE = r"""
 import re
 import json
@@ -193,7 +193,7 @@ def main():
             for group in ranked
             if group.id != auth.id
             and group.repeated_inputs > group.consistent_inputs
-            and all(isinstance(call.output, str) for call in group.calls)
+            and any(isinstance(call.output, str) for call in group.calls)
         ),
         key=lambda group: group.repeated_inputs - group.consistent_inputs,
     )
@@ -201,7 +201,7 @@ def main():
         task=reply.id,
         rule="keep-ai",
         description=(
-            f"The agent drafts retail replies using conversation context. "
+            f"This inferred group includes retail replies that depend on conversation context. "
             f"Identical inputs varied on {reply.repeated_inputs - reply.consistent_inputs} of "
             f"{reply.repeated_inputs} repeated prompts. Review authentication separately."
         ),

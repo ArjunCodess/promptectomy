@@ -19,7 +19,64 @@ POLICY = Policy(min_accuracy=0.85, min_holdout=20, holdout_fraction=0.5)
 def test_version_without_command():
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0, result.output
-    assert "promptectomy 0.2.0" in result.output
+    assert "promptectomy 0.3.0" in result.output
+
+
+def test_short_system_instructions_group_free_text_variants(dataset):
+    variants = ["The lid broke.", "It arrived yesterday.", "I love this shop."]
+    systems = [
+        "Sentiment: positive or negative.",
+        "Topic: shipping, quality, or service.",
+        "One sentence with the central point.",
+    ]
+    calls = [
+        dataset[0][0].model_copy(
+            update={
+                "step": None,
+                "prompt": json.dumps(
+                    [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": text},
+                    ]
+                ),
+            }
+        )
+        for system in systems
+        for text in variants
+    ]
+    actual = {frozenset(call.prompt for call in task.calls) for task in rank(calls, {}, 30)}
+    expected = {
+        frozenset(call.prompt for call in calls if json.loads(call.prompt)[0]["content"] == system)
+        for system in systems
+    }
+    assert actual == expected
+
+
+def test_unlabelled_chat_followups_group_requested_values_without_specific_words(dataset):
+    replies = [
+        ("Could you give me the details?", "It's 212-555-0184."),
+        ("Please share that with me.", "Try 310-555-0148."),
+        ("Could you give me the details?", "It's ORD-12345."),
+        ("Please share that with me.", "Try INV-7890."),
+    ]
+    calls = [
+        dataset[0][0].model_copy(
+            update={
+                "step": None,
+                "prompt": json.dumps(
+                    [
+                        {"role": "system", "content": "Assist customers with orders."},
+                        {"role": "user", "content": "I need some help."},
+                        {"role": "assistant", "content": request},
+                        {"role": "user", "content": answer},
+                    ]
+                ),
+            }
+        )
+        for request, answer in replies
+    ]
+    groups = {frozenset(call.prompt for call in task.calls) for task in rank(calls, {}, 30)}
+    assert groups == {frozenset(call.prompt for call in pair) for pair in (calls[:2], calls[2:])}
 
 
 @pytest.fixture
