@@ -1,0 +1,20 @@
+name: publish
+on:
+  release:
+    types: [published]
+
+jobs:
+  pypi:
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+      - run: uv sync --project core --locked
+      - run: uv run --project core pytest core/tests
+      - run: uv build --project core --out-dir dist
+      - run: uv publish --trusted-publishing always dist/*
