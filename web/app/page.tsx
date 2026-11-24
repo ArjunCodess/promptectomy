@@ -24,11 +24,11 @@ const workflow = [
 ];
 
 const questions = [
-  ["Do I need a Groq key?", "Only for suggest. The bundled demo, analysis, and verification run without a key."],
+  ["Do I need a Groq key?", "Only if you use a Groq model for suggest. The local rules, demo, analysis, and verification work without a key."],
   ["What gets sent to Groq?", "Only the task description you write for suggest. Keep it generic. Your trace and verified answers stay on your machine."],
   ["What makes an example verified?", "A person or a trusted source checks the expected answer independently. The original model output has its own column in the report."],
-  ["What does PASS mean?", "The reviewed Python met your policy on the withheld examples. Use the report and its assumptions when reviewing a production change."],
-  ["What happens when there’s too little evidence?", "You get UNVERIFIED and the report tells you how many more independently checked inputs the policy needs."],
+  ["What does PASS mean?", "The reviewed Python met the confidence threshold on independently checked prompts from the task. Use the report and its assumptions when reviewing a production change."],
+  ["What happens when there’s too little evidence?", "UNVERIFIED tells you what evidence is missing. KEEP_AI means the task should stay with the model because it depends on context or judgment."],
   ["Can I use logs from any provider?", "Yes. Export the calls as JSONL with the prompt, output, model, and token counts. Include a step label if your logger has one."],
 ];
 

@@ -11,14 +11,14 @@ const examples = {
     task: "extract_ticket_id",
     verdict: "PASS",
     note: "Review the Python before shipping",
-    fee: "$0.0048",
+    fee: "$0.0288",
     replacement: "$0.0000",
   },
   support: {
-    label: "Support routing",
-    task: "classify_support",
-    verdict: "UNVERIFIED",
-    note: "Verify 5 more distinct inputs to meet this policy",
+    label: "Support replies",
+    task: "draft_support_reply",
+    verdict: "KEEP_AI",
+    note: "Replies depend on context. Keep the AI for this step.",
     fee: "$0.0028",
     replacement: "Unavailable",
   },
@@ -71,8 +71,8 @@ export function Demo() {
             {passed && (
               <tr>
                 <th scope="row">Exact matches</th>
-                <td>2 / 4</td>
-                <td className="verified-value">4 / 4</td>
+                <td>18 / 24</td>
+                <td className="verified-value">24 / 24</td>
               </tr>
             )}
             <tr>
@@ -82,12 +82,6 @@ export function Demo() {
             </tr>
           </tbody>
         </table>
-        {!passed && (
-          <dl className="report-holdout">
-            <dt>Holdout examples</dt>
-            <dd><span>1</span> available, <span>4</span> required</dd>
-          </dl>
-        )}
         <p className="report-note">{report.note}</p>
       </div>
       <figcaption>Same log, two tasks</figcaption>

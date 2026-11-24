@@ -219,20 +219,6 @@ button[data-slot="button"]:focus-visible { box-shadow: none; }
 .report-table td { color: var(--body-ink); font-family: var(--type-data); }
 .report-table .verified-value { background: var(--accent-well); color: var(--accent); font-weight: 500; }
 .report-table .unavailable-value { color: var(--muted-foreground); font-family: var(--type-body); }
-.report-holdout {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  min-height: 2.75rem;
-  padding-block: 0.5rem;
-  border-bottom: 1px solid var(--border);
-  color: var(--body-ink);
-  font-size: var(--text-sm);
-}
-.report-holdout dd { margin: 0; }
-.report-holdout dd span { font-family: var(--type-data); font-variant-numeric: tabular-nums; }
 .report-note { margin: 0.75rem 0 0; color: var(--body-ink); font-size: var(--text-sm); }
 .report figcaption {
   padding: 0.5rem 1rem;
@@ -326,7 +312,7 @@ button[data-slot="button"]:focus-visible { box-shadow: none; }
   .hero h1 { font-size: var(--text-4xl); }
   .report-select { padding-inline: 0.5rem; }
   .report-table th, .report-table td { padding-inline: 0.25rem; }
-  .report-table, .report-holdout { font-size: var(--text-xs); }
+  .report-table { font-size: var(--text-xs); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
