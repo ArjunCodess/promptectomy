@@ -19,7 +19,7 @@ POLICY = Policy(min_accuracy=0.85, min_holdout=20, holdout_fraction=0.5)
 def test_version_without_command():
     result = CliRunner().invoke(app, ["--version"])
     assert result.exit_code == 0, result.output
-    assert "promptectomy 0.3.0" in result.output
+    assert "promptectomy 0.3.1" in result.output
 
 
 def test_short_system_instructions_group_free_text_variants(dataset):

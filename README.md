@@ -37,7 +37,7 @@ Native JSONL rows contain `prompt`, `output`, `model`, `input_tokens`, and `outp
 
 Use `ingest --format openai` for JSONL rows containing Chat Completions `request` and `response` bodies. Use `--format openai-batch --requests INPUT.jsonl` for paired Batch files, `--format otel` for OTLP JSON with GenAI message and usage attributes, or `--format langsmith` for LLM runs with one chat input batch and one generation batch. Redact with `ingest --redact REGEX` before drafting review inputs. Verification uses the stored, redacted values.
 
-**Step labels are the reliable way to group calls.** Without them, chat grouping uses system instructions and conversation turns as clues and can split or combine tasks. For LangSmith, set `extra.metadata.promptectomy_step`. For OpenTelemetry, set `promptectomy.step`. After upgrading to 0.3.0, run `analyze` again and re-attest evidence if an inferred task ID changed.
+**Step labels are the reliable way to group calls.** Without them, chat grouping uses system instructions and conversation turns as clues and can split or combine tasks. For LangSmith, set `extra.metadata.promptectomy_step`. For OpenTelemetry, set `promptectomy.step`. After upgrading to 0.3.1, run `analyze` again and re-attest evidence if an inferred task ID changed.
 
 Use the [example task](core/examples/tickets.task.json) to write a description without sensitive data. With a key in `.env` or `GROQ_API_KEY`, `suggest` uses GPT OSS 20B for simple tasks and 120B for hard ones. It can ask Groq to repair its own response once. Logs and review files stay local. Use `--model ID` to override it or `--model rules` to force the offline rules. Rules also run when the key is absent. Use `rule: "keep-ai"` when you've decided a task should stay with the model.
 
