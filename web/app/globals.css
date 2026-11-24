@@ -244,8 +244,12 @@ button[data-slot="button"]:focus-visible { box-shadow: none; }
 .workflow-list p { margin: 0.5rem 0 0; color: var(--body-ink); font-size: var(--text-sm); line-height: 1.55; }
 .evidence { padding-block: 4rem; }
 .evidence h2 { font-size: var(--text-4xl); line-height: 1.2; }
-.questions, .start { display: grid; grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr); gap: 2rem; }
-.questions { padding-block: 2rem 3rem; border-top: 1px solid var(--border); }
+.questions, .start { display: grid; gap: 2rem; }
+.questions {
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  padding-block: 2rem 3rem;
+  border-top: 1px solid var(--border);
+}
 .question-list details { border-bottom: 1px solid var(--border); }
 .question-list summary {
   display: flex;
@@ -264,8 +268,8 @@ button[data-slot="button"]:focus-visible { box-shadow: none; }
 .question-list details[open] svg { transform: rotate(180deg); }
 .question-list details:not([open]) p { display: none; }
 .question-list details p { margin: 0; padding: 0.75rem 0.5rem 1rem; color: var(--body-ink); font-size: var(--text-sm); line-height: 1.6; }
-.start { align-items: center; }
-.start p { max-width: 30rem; margin-top: 1rem; color: var(--body-ink); line-height: 1.65; }
+.start { grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); align-items: center; }
+.start p { max-width: 39rem; margin-top: 1rem; color: var(--body-ink); line-height: 1.65; }
 .quickstart-head { justify-content: space-between; padding-inline: 0.75rem 0.5rem; }
 .copy-control { display: flex; align-items: center; gap: 0.5rem; }
 .copy-message { color: var(--muted-foreground); font-size: var(--text-xs); }
