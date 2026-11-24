@@ -7,22 +7,22 @@ import { Button } from "@/components/ui/button";
 
 export function CopyCommand({ command }: { command: string }) {
   const [message, setMessage] = useState("");
-  const copied = message === "Commands copied.";
+  const copied = message === "Commands copied";
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(command);
-      setMessage("Commands copied.");
+      setMessage("Commands copied");
     } catch {
-      setMessage("Select the commands to copy them.");
+      setMessage("Select the commands to copy them");
     }
   }
 
   return (
     <div className="copy-control">
-      <span role="status">{message}</span>
-      <Button variant="outline" onClick={copy} aria-label="Copy commands">
-        <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} aria-hidden="true" data-icon="inline-start" />
+      <span className={copied ? "sr-only" : "copy-message"} role="status">{message}</span>
+      <Button className="copy-button" variant="outline" onClick={copy} aria-label="Copy commands">
+        <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={16} strokeWidth={1.5} aria-hidden="true" />
         {copied ? "Copied" : "Copy"}
       </Button>
     </div>

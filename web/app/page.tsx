@@ -2,11 +2,11 @@ import {
   ArrowDown01Icon,
   ArrowUpRight01Icon,
   ComputerTerminal01Icon,
-  GithubIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CopyCommand } from "@/components/copy-command";
 import { Demo } from "@/components/demo";
+import { SiteNav } from "@/components/site-nav";
 
 const repository = "https://github.com/ArjunCodess/promptectomy";
 const commands = [
@@ -17,10 +17,10 @@ const commands = [
 ].join("\n");
 
 const workflow = [
-  { command: "ingest", detail: "Import JSONL and mask sensitive text." },
+  { command: "ingest", detail: "Import JSONL and mask sensitive text" },
   { command: "analyze", detail: "Group calls. Rank tasks by cost and frequency." },
-  { command: "suggest", detail: "Get Python and assumptions from your task description." },
-  { command: "test", detail: "Score reviewed code on verified examples." },
+  { command: "suggest", detail: "Get Python and assumptions from your task description" },
+  { command: "test", detail: "Score reviewed code on verified examples" },
 ];
 
 const questions = [
@@ -39,28 +39,22 @@ export default function Home() {
       <header className="masthead">
         <div className="shell masthead-inner">
           <a href="#main" className="wordmark">
-            <span className="brand-mark"><HugeiconsIcon icon={ComputerTerminal01Icon} size={20} aria-hidden="true" /></span>
+            <HugeiconsIcon icon={ComputerTerminal01Icon} size={16} strokeWidth={1.5} aria-hidden="true" />
             Promptectomy
           </a>
-          <nav aria-label="Main navigation">
-            <a className="nav-section" href="#workflow">Workflow</a>
-            <a className="nav-section" href="#questions">FAQ</a>
-            <a href={repository} className="source-link">
-              <HugeiconsIcon icon={GithubIcon} size={17} aria-hidden="true" /> GitHub
-            </a>
-          </nav>
+          <SiteNav repository={repository} />
         </div>
       </header>
       <main id="main" tabIndex={-1}>
         <section className="shell hero" aria-labelledby="hero-title">
           <div>
-            <h1 id="hero-title">Cut the calls <br />you can replace.</h1>
-            <p className="hero-lede">Replace repetitive LLM calls with Python tested against independently verified answers.</p>
+            <h1 id="hero-title">Cut the calls <br />you can replace</h1>
+            <p className="hero-lede">Replace repetitive LLM calls with Python tested against independently verified answers</p>
+            <p className="hero-meta">Open source under MIT. Runs on your machine.</p>
             <a href="#get-started" className="action">
               Run the local demo
-              <HugeiconsIcon icon={ArrowDown01Icon} data-icon="inline-end" aria-hidden="true" />
+              <HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={1.5} aria-hidden="true" />
             </a>
-            <p className="hero-meta">Open source under MIT. Runs on your machine.</p>
           </div>
           <Demo />
         </section>
@@ -80,7 +74,7 @@ export default function Home() {
         </section>
 
         <section className="shell evidence" aria-labelledby="evidence-title">
-          <h2 id="evidence-title">Your logs show what the model said.<br />Verified examples show what it got right.</h2>
+          <h2 id="evidence-title">Your logs show what the model said.<br />Verified examples show what it got right</h2>
         </section>
 
         <section id="questions" className="shell questions" aria-labelledby="questions-title">
@@ -88,7 +82,7 @@ export default function Home() {
           <div className="question-list">
             {questions.map(([question, answer]) => (
               <details key={question}>
-                <summary>{question}<HugeiconsIcon icon={ArrowDown01Icon} size={17} aria-hidden="true" /></summary>
+                <summary>{question}<HugeiconsIcon icon={ArrowDown01Icon} size={16} strokeWidth={1.5} aria-hidden="true" /></summary>
                 <p>{answer}</p>
               </details>
             ))}
@@ -100,9 +94,9 @@ export default function Home() {
             <div>
               <h2 id="start-title">Try it with a sample log</h2>
               <p>With Python 3.11 or newer and uv, you can rank the sample calls and rerun both verdicts locally. The README shows how to bring your own logs.</p>
-              <a href={`${repository}#try-it`} className="action">
+              <a href={`${repository}#try-it`} className="action action-secondary">
                 Open the demo guide
-                <HugeiconsIcon icon={ArrowUpRight01Icon} data-icon="inline-end" aria-hidden="true" />
+                <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} strokeWidth={1.5} aria-hidden="true" />
               </a>
             </div>
             <div className="quickstart">
@@ -113,7 +107,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="shell footer">
-        <a href="#main" className="wordmark"><HugeiconsIcon icon={ComputerTerminal01Icon} size={20} aria-hidden="true" /> Promptectomy</a>
+        <a href="#main" className="wordmark"><HugeiconsIcon icon={ComputerTerminal01Icon} size={16} strokeWidth={1.5} aria-hidden="true" /> Promptectomy</a>
         <div>
           <a href={`${repository}#use-your-own-logs`}>Data and privacy</a>
           <a href={`${repository}/blob/main/LICENSE`}>MIT license</a>
