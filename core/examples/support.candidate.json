@@ -1,0 +1,1 @@
+{"task":"classify_support","model":"fixture","suggestion":{"status":"candidate","code":"def replace(prompt: str) -> str:\n    if \"invoice\" in prompt.lower():\n        return \"billing\"\n    return \"account\"\n","assumptions":["The fixture categories are billing and account."]}}

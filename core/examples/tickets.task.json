@@ -1,0 +1,1 @@
+{"task":"extract_ticket_id","description":"Given a prompt in the form 'Extract the ticket ID.\\nText: Ticket CT-0000 needs review.', return the first ticket ID as a plain string. Ticket IDs have the exact prefix CT- followed by four decimal digits. Match a full ID, and return null if there is no ID. The example is invented.","complexity":"simple"}

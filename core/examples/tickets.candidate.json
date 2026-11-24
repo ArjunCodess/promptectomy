@@ -1,0 +1,1 @@
+{"task":"extract_ticket_id","model":"fixture","suggestion":{"status":"candidate","code":"import re\n\n\ndef replace(prompt: str) -> str | None:\n    match = re.search(r\"\\bCT-[0-9]{4}\\b\", prompt)\n    return match.group() if match else None\n","assumptions":["Ticket IDs have the prefix CT- and four digits."]}}

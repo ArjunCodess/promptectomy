@@ -1,0 +1,10 @@
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-1042 needs review.","output":"CT-1043","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":487}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-8120 needs review.","output":"CT-8120","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":510}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-21056 needs review.","output":"CT-2105","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":444}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-0031 needs review.","output":"CT-0031","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":612}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-4842 needs review.","output":"CT-4842","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":563}
+{"prompt":"Extract the ticket ID.\nText: A new ticket has no ID yet and still needs review.","output":null,"model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":480}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-2843 needs review.","output":"CT-2843","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":530}
+{"prompt":"Extract the ticket ID.\nText: Ticket CT-1288 needs review.","output":"CT-1288","model":"fixture-model","input_tokens":320,"output_tokens":8,"step":"extract_ticket_id","cost_usd":0.0006,"latency_ms":409}
+{"prompt":"Classify the support category.\nText: Invoice due tomorrow.","output":"billing","model":"fixture-model","input_tokens":610,"output_tokens":6,"step":"classify_support","cost_usd":0.0014,"latency_ms":780}
+{"prompt":"Classify the support category.\nText: Cannot reset my password.","output":"account","model":"fixture-model","input_tokens":610,"output_tokens":6,"step":"classify_support","cost_usd":0.0014,"latency_ms":614}

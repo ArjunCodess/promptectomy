@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+.promptectomy/
+.hallmark/
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+dist/
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.vercel/
+*.egg-info/
+build/
